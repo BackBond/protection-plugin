@@ -22243,7 +22243,7 @@ function toError(value) {
 import { randomUUID } from "node:crypto";
 
 // src/contracts.mjs
-var VERSION = "0.1.0";
+var VERSION = "0.2.0";
 var INSTRUCTIONS = `BackBond protection SIMULATION only. No real insurance, warranty, purchases, payouts or fees.
 When the user asks "Protect me via BackBond", call begin_protection_demo with no arguments.
 Then call demo_next_message, perform each synthetic conversation using only demo_call_tool,
@@ -22319,7 +22319,7 @@ function publicResult(name, raw) {
 }
 
 // src/backend.mjs
-var DEFAULT_BASE = "https://scanner.backbond.ai/agent-connect/protection-demo/public/";
+var DEFAULT_BASE = "https://scanner.backbond.ai/agent-connect/protection-simulation/v1/";
 var MAX_RESPONSE = 512 * 1024;
 var SimulationBackend = class {
   #base;
@@ -22359,11 +22359,15 @@ var SimulationBackend = class {
   }
   async #enroll() {
     const manifest = await this.#json(new URL("install.json", this.#base));
-    const deadline = Date.parse(manifest.expires_at);
-    if (manifest.simulation_only !== true || manifest.status !== "available" || !Number.isFinite(deadline) || this.#now() >= deadline) throw new Error("simulation_unavailable");
-    this.#deadline = deadline;
+    const maintained = manifest.service_lifecycle === "maintained";
+    const serviceDeadline = Date.parse(manifest.expires_at);
+    const ttl = manifest.session_ttl_seconds;
+    if (manifest.simulation_only !== true || manifest.status !== "available" || (maintained ? !Number.isInteger(ttl) || ttl < 60 || ttl > 86400 : !Number.isFinite(serviceDeadline) || this.#now() >= serviceDeadline)) throw new Error("simulation_unavailable");
+    const started = this.#now();
     const enrollment = await this.#json(new URL("enroll", this.#base), {});
-    if (enrollment.simulation_only !== true || Date.parse(enrollment.expires_at) !== deadline) throw new Error("invalid_enrollment");
+    const deadline = Date.parse(enrollment.expires_at);
+    if (enrollment.simulation_only !== true || !Number.isFinite(deadline) || deadline <= this.#now() || (maintained ? deadline > started + ttl * 1e3 + 15e3 : deadline !== serviceDeadline)) throw new Error("invalid_enrollment");
+    this.#deadline = deadline;
     const capability = new URL(enrollment.server_url);
     const prefix = new URL("mcp/", this.#base).href;
     if (!capability.href.startsWith(prefix) || !/^[A-Za-z0-9_-]{54}$/.test(capability.href.slice(prefix.length))) throw new Error("unapproved_capability");
@@ -22371,7 +22375,7 @@ var SimulationBackend = class {
       jsonrpc: "2.0",
       id: ++this.#sequence,
       method: "initialize",
-      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "backbond-protection-open-gateway", version: "0.1.0" } }
+      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "backbond-protection-open-gateway", version: "0.2.0" } }
     });
     if (initialized.id !== this.#sequence || initialized.error || initialized.result?.serverInfo?.name !== "backbond-protection-demo") throw new Error("invalid_backend_handshake");
     return capability;

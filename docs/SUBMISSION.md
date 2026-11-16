@@ -18,7 +18,7 @@ Description:
 
 Testing instructions:
 
-> Review and reproduce the bundled gateway using the README build commands. The public suite uses loopback transport fixtures and the official MCP client. The private-engine acceptance run completed six synthetic cases, a simulated $10 claim and $3.40 invoice; its unsafe path was declined. These were deterministic programmatic clients, not Grok Bot. Follow TESTING.md for the required isolated Grok Bot procedure. The current upstream expires on 17 November 2026 at 12:30:38 UTC; a maintained review endpoint or an agreed test window is required. Do not supply real data or connect real apps.
+> Review and reproduce the bundled gateway using the README build commands. The public suite uses loopback transport fixtures and the official MCP client. The private-engine acceptance run completed six synthetic cases, a simulated $10 claim and $3.40 invoice; its unsafe path was declined. These were deterministic programmatic clients, not Grok Bot. Follow TESTING.md for the required isolated Grok Bot procedure. The maintained simulation upstream is https://scanner.backbond.ai/agent-connect/protection-simulation/v1/ and each isolated enrollment expires after 24 hours. Do not supply real data or connect real apps.
 
 ## Submission gates
 
@@ -26,6 +26,6 @@ The form's "tested locally and in-app" confirmation must remain **unchecked** un
 
 The publisher must review and accept the current terms at submission time. No acceptance is performed by the build tools. Confirm with xAI that the open-source gateway/private-service boundary is acceptable. Commercial use is outside this free simulation; obtain clarification of section 3.1 before introducing any paid service through the plugin.
 
-The temporary service deadline has not been extended. Do not submit a listing as durably usable while its sole backend is about to expire. No manual-review timeline or listing approval is assumed.
+The maintained service is separate from the original temporary demo and its expiry timer. It runs at boot, restarts on failure, and enforces bounded capacity. No uptime guarantee is made. No manual-review timeline or listing approval is assumed.
 
 Links: https://x.ai/bot/marketplace/submit-a-plugin and https://cursor.com/marketplace-publisher-terms .

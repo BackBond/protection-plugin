@@ -80,6 +80,25 @@ test('upstream failures cannot invent protection or leak exception contents', as
   await assert.rejects(b.call('begin_protection_demo', {}));
 });
 
+test('maintained service requires bounded per-install expiry and expires each capability', async t => {
+  const clockStart = Date.parse('2026-11-16T16:00:00Z');
+  const manifest = {status: 'available', simulation_only: true, service_lifecycle: 'maintained', session_ttl_seconds: 86400};
+  const f = await fakeService({manifest, expiry: new Date(clockStart + 86400000).toISOString()});
+  t.after(() => f.close());
+  let clock = clockStart;
+  const b = new SimulationBackend({base: f.base, allowLoopback: true, now: () => clock});
+  const run = await b.call('begin_protection_demo', {});
+  clock += 86400001;
+  await assert.rejects(b.call('demo_status', {run_id: run.run_id}), /simulation_expired/);
+  for (const expiry of ['invalid', '2026-11-16T15:00:00Z', '2099-01-01T00:00:00Z']) {
+    const g = await fakeService({manifest, expiry}); t.after(() => g.close());
+    await assert.rejects(new SimulationBackend({base: g.base, allowLoopback: true, now: () => clockStart}).call('begin_protection_demo', {}), /invalid_enrollment/);
+  }
+  const bad = await fakeService({manifest: {...manifest, session_ttl_seconds: 86401}}); t.after(() => bad.close());
+  await assert.rejects(makeBackend(bad).call('begin_protection_demo', {}), /simulation_unavailable/);
+  assert.equal(bad.enrollments, 0);
+});
+
 test('final projection forwards backend amounts without exposing grader internals or recalculating money', () => {
   const data = publicResult('demo_next_message', {status: 'finished', decision: {status: 'simulated_active',
     claims: {fixture: {payout_cents: 123}}, invoices: {'2026-01': {total_cents: 7, currency: 'USD'}},

@@ -12,7 +12,7 @@ export async function fakeService(options = {}) {
     requests.push({path: req.url, body});
     res.setHeader('Content-Type', 'application/json');
     const send = value => res.end(JSON.stringify(value));
-    if (req.url === '/install.json') return send({status: 'available', simulation_only: true, expires_at: expiry});
+    if (req.url === '/install.json') return send(options.manifest ?? {status: 'available', simulation_only: true, expires_at: expiry});
     if (req.url === '/enroll') {
       const token = randomBytes(40).toString('base64url');
       const run = 'run_' + (++enrollments).toString(16).padStart(24, '0');

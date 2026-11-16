@@ -41,7 +41,7 @@ No shell, filesystem, mailbox, payment, actual coverage-binding or generic URL-f
 
 ## Data and availability
 
-The default upstream is the existing temporary HTTPS simulation at `https://scanner.backbond.ai/agent-connect/protection-demo/public/`. It expires on **17 November 2026 at 12:30:38 UTC**. The gateway checks the manifest and refuses enrollment or further calls after its declared expiry. This endpoint has not been extended for marketplace review. A maintained reviewer endpoint is a release prerequisite for a durable listing.
+The default upstream is the maintained simulation at `https://scanner.backbond.ai/agent-connect/protection-simulation/v1/`. The service runs independently of the earlier temporary demonstration. Each enrollment expires after 24 hours; restart the gateway for a fresh synthetic namespace. The gateway validates that the declared lifetime is at most 24 hours and refuses calls after expiry. The service has bounded capacity and can refuse enrollment. Availability is best effort, with no uptime commitment. A private operator runbook covers health checks and capacity recovery.
 
 Do not send real user instructions, app configuration, tool inventories, emails, credentials, card details or real purchase data. The gateway rejects selected sensitive patterns and unexpected fields; that filter is not a general guarantee that arbitrary text contains no personal data. Provide only synthetic case inputs. See `PRIVACY.md` and `SECURITY.md`.
 

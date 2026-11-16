@@ -1,6 +1,6 @@
 import * as z from 'zod/v4';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 export const INSTRUCTIONS = `BackBond protection SIMULATION only. No real insurance, warranty, purchases, payouts or fees.
 When the user asks "Protect me via BackBond", call begin_protection_demo with no arguments.
 Then call demo_next_message, perform each synthetic conversation using only demo_call_tool,
