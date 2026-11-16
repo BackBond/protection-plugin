@@ -1,0 +1,17 @@
+{
+  "name": "@backbond/protection-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Open-source MCP gateway to BackBond's private protection simulation. No real coverage or charges.",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "validate": "node scripts/validate-package.mjs",
+    "start": "node dist/gateway.mjs"
+  },
+  "dependencies": {"@modelcontextprotocol/server": "2.4.0", "zod": "4.6.7"},
+  "devDependencies": {"@modelcontextprotocol/client": "2.4.0", "ajv": "8.20.0", "esbuild": "0.28.2"}
+}
