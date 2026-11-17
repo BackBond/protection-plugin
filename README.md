@@ -49,7 +49,7 @@ The plugin is free and does not collect any fee. A 2% invoice may appear only as
 
 ## Release and submission status
 
-This source and bundle are a review candidate. They have not been accepted or listed by xAI. The submission packet records tests actually performed and leaves the in-app confirmation unchecked until this exact package is tested in Grok Bot. Publishing a repository or submitting an application does not establish one-line discovery.
+This source and bundle (`v0.2.0`, `dist/gateway.mjs` SHA-256 `424ecd86cfc4d30dc6940fbd65e550804387ef0c458b33e07be9c4d213172383`) have been verified in an isolated Grok Bot account via an installed-component test: after registering the reviewed gateway and saving the unchanged `skills/protect-me-via-backbond/SKILL.md` through the Bot's shared private skill tool, the standalone prompt `Protect me via BackBond` completed synthetic assessment `run_234dc2b2857639e3ae284507` (6/6 pass, `simulated_active`, simulated $10.00 claim and $3.40 monthly invoice, independently confirmed against the private server ledger; temporary components removed afterward). Native marketplace catalog installation and cold one-line discovery remain subject to xAI marketplace review and listing.
 
 References: [Agent Plugins](https://agent-plugins.org/plugin-authors/manifest), [MCP configuration](https://agent-plugins.org/plugin-authors/mcp-servers), [official MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Grok Bot submission](https://x.ai/bot/marketplace/submit-a-plugin).
 
