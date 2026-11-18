@@ -4,8 +4,8 @@
   "version": "0.2.0",
   "description": "Protect me via BackBond: run a synthetic assessment through BackBond's private service, then retrieve the simulated protection decision, claim and monthly bill. No real coverage or charges.",
   "author": {"name": "BackBond", "email": "support@backbond.ai", "url": "https://backbond.ai"},
-  "homepage": "https://backbond.ai/protect/",
+  "homepage": "https://backbond.ai",
   "repository": "https://github.com/BackBond/protection-plugin",
   "license": "MIT",
-  "keywords": ["backbond", "protection", "Protect me via BackBond", "simulation", "ai-agent-insurance"]
+  "keywords": ["backbond", "protection", "Protect me via BackBond", "simulation"]
 }

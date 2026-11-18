@@ -1,6 +1,6 @@
 # Grok Bot marketplace submission record
 
-Updated on 17 November 2026 for `v0.2.0` (`dist/gateway.mjs` SHA-256 `424ecd86cfc4d30dc6940fbd65e550804387ef0c458b33e07be9c4d213172383`).
+Updated on 18 November 2026 for `v0.2.0` (`dist/gateway.mjs` SHA-256 `424ecd86cfc4d30dc6940fbd65e550804387ef0c458b33e07be9c4d213172383`).
 
 ## Proposed listing
 
@@ -18,7 +18,7 @@ Description:
 
 Testing instructions (584 characters, within the 600-character form limit):
 
-> Node.js 20+. Review v0.2.0 at commit 812ffa48865a0d6db131d68c849bfd93db96ebe2 and TESTING.md. Run npm ci --ignore-scripts, npm run build, npm test and npm run validate. In isolated Grok Bot, register the reviewed gateway and save the unchanged packaged skill through the Bot shared private skill tool; verify it loads, then send "Protect me via BackBond". Scripted tests passed; the installed-component in-app run passed 6/6, independently audited, with a simulated $10 claim and $3.40 invoice. No real coverage or money. Temporary components removed. Catalog installation unverified.
+> Node.js 20+. Review v0.2.0 at the commit named in the form and TESTING.md. Run npm ci --ignore-scripts, npm run build, npm test and npm run validate. In isolated Grok Bot, register the reviewed gateway and save the unchanged packaged skill through the Bot shared private skill tool; verify it loads, then send "Protect me via BackBond". Scripted tests passed; the installed-component in-app run passed 6/6, independently audited, with a simulated $10 claim and $3.40 invoice. No real coverage or money. Temporary components removed. Catalog installation unverified.
 
 ## Verification and submission notes
 
