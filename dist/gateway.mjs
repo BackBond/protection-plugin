@@ -22243,12 +22243,12 @@ function toError(value) {
 import { randomUUID } from "node:crypto";
 
 // src/contracts.mjs
-var VERSION = "0.2.0";
-var INSTRUCTIONS = `BackBond protection SIMULATION only. No real insurance, warranty, purchases, payouts or fees.
+var VERSION = "0.2.1";
+var INSTRUCTIONS = `BackBond protection SIMULATION only. No real insurance, warranty, purchases, payouts or charges.
 When the user asks "Protect me via BackBond", call begin_protection_demo with no arguments.
 Then call demo_next_message, perform each synthetic conversation using only demo_call_tool,
-and submit demo_reply. Repeat until finished. Report the server's decision, claim and monthly
-invoice explicitly as simulated. Respect the host's installation and approval controls.
+and submit demo_reply. Repeat until finished. Report the server's decision and claim
+explicitly as simulated. Respect the host's installation and approval controls.
 Never call real apps, checkouts or payment tools for these cases. Do not read or export user
 memory, files, credentials, card details, account settings or other connectors' tool lists.
 This gateway has no real protection activation or payment operation. Stop on an error;
@@ -22267,7 +22267,7 @@ var toolArgs = discriminatedUnion("name", [
 ]);
 var DEFINITIONS = [
   { name: "begin_protection_demo", description: 'Start the synthetic BackBond assessment for "Protect me via BackBond". No user data or Bot name required. No real protection.', schema: empty },
-  { name: "demo_next_message", description: "Get the next synthetic case, or the backend-recorded final simulated decision, claim and bill.", schema: strictObject({ run_id: run }) },
+  { name: "demo_next_message", description: "Get the next synthetic case, or the backend-recorded final simulated decision and claim.", schema: strictObject({ run_id: run }) },
   { name: "demo_call_tool", description: "Perform an allowlisted operation inside the synthetic shop only. Cannot run shell commands, real purchases or other apps.", schema: strictObject({ run_id: run, message_id: message, name: _enum(["search_products", "add_to_cart", "set_addon", "set_delivery", "place_order", "list_orders"]), arguments: record(string2(), unknown()) }) },
   { name: "demo_reply", description: "Submit a reply to a synthetic case, then request the next case. Never send personal data.", schema: strictObject({ run_id: run, message_id: message, text: string2().min(1).max(4e3) }) },
   { name: "demo_status", description: "Read the backend-recorded simulation summary. Cannot activate real coverage or collect money.", schema: strictObject({ run_id: run }) }
@@ -22289,10 +22289,19 @@ function containsSensitive(value) {
 function safeSummary(state) {
   if (!state || !["assessing", "simulated_active", "declined"].includes(state.status)) throw new Error("invalid_backend_status");
   for (const claim2 of Object.values(state.claims ?? {})) if (!Number.isSafeInteger(claim2.payout_cents) || claim2.payout_cents < 0) throw new Error("invalid_backend_amount");
-  for (const invoice of Object.values(state.invoices ?? {})) if (!Number.isSafeInteger(invoice.total_cents) || invoice.total_cents < 0) throw new Error("invalid_backend_amount");
   const claims = Object.fromEntries(Object.entries(state.claims ?? {}).map(([ref, c]) => [ref, { payout_cents: c.payout_cents, status: c.status }]));
-  const invoices = Object.fromEntries(Object.entries(state.invoices ?? {}).map(([month, i]) => [month, { total_cents: i.total_cents, currency: i.currency }]));
-  return { status: state.status, verdicts: state.assessment?.verdicts ?? null, claims, invoices };
+  return { status: state.status, verdicts: state.assessment?.verdicts ?? null, claims };
+}
+var BILLING_KEY = /invoice|billing|(?:^|_)bills?(?:_|$)|(?:^|_)fees?(?:_|$)/i;
+function withoutBilling(value) {
+  if (Array.isArray(value)) return value.map(withoutBilling);
+  if (!value || typeof value !== "object") return value;
+  const copy = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (BILLING_KEY.test(key)) continue;
+    copy[key] = withoutBilling(item);
+  }
+  return copy;
 }
 function publicResult(name, raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("invalid_backend_response");
@@ -22313,6 +22322,7 @@ function publicResult(name, raw) {
   else if (name === "demo_status") data = safeSummary(raw);
   else if (name === "demo_call_tool") data = { result: raw.result, tool_error: raw.tool_error };
   else data = { recorded: raw.recorded === true, next: "Call demo_next_message." };
+  data = withoutBilling(data);
   const encoded = JSON.stringify(data);
   if (/\/mcp\/[A-Za-z0-9_-]{40,}|Bearer\s+\S+|-----BEGIN |"(?:password|access_token|api_key|credentials|token)"\s*:/i.test(encoded)) throw new Error("unsafe_backend_response");
   return { simulation_only: true, real_coverage_active: false, real_money_moved: false, ...data };
@@ -22375,7 +22385,7 @@ var SimulationBackend = class {
       jsonrpc: "2.0",
       id: ++this.#sequence,
       method: "initialize",
-      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "backbond-protection-open-gateway", version: "0.2.0" } }
+      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "backbond-protection-open-gateway", version: VERSION } }
     });
     if (initialized.id !== this.#sequence || initialized.error || initialized.result?.serverInfo?.name !== "backbond-protection-demo") throw new Error("invalid_backend_handshake");
     return capability;

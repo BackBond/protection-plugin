@@ -6,11 +6,11 @@ The intended user request is **Protect me via BackBond**. Marketplace approval a
 
 ## Open interface, private service
 
-The MIT-licensed source includes the root `plugin.json`, `mcp.json`, the packaged workflow skill, five tool schemas, the connection gateway, public transport tests and build tooling. It does not include BackBond's proprietary scans, confidential test catalogue, grading keys, underwriting, pricing, claims logic, customer records or billing ledger.
+The MIT-licensed source includes the root `plugin.json`, `mcp.json`, the packaged workflow skill, five tool schemas, the connection gateway, public transport tests and build tooling. It does not include BackBond's proprietary scans, confidential test catalogue, grading keys, underwriting, pricing, claims logic or customer records.
 
 The bundled gateway runs as a separate Node.js process over MCP stdio. It reads the published simulation manifest, enrolls an isolated synthetic namespace with an empty JSON object, then invokes only five allowlisted operations on the returned private capability URL. That capability stays in process memory and is not exposed as a tool result or written to disk by this gateway. Each process gets its own namespace; restarting does not restore a previous installation's state. This is a simulation enrollment mechanism, not production identity or insurance-account binding.
 
-The private service supplies synthetic cases, grades the actions and returns the recorded results. Cases delivered to the agent and reported results are visible to that agent; the implementation and broader test bank stay on BackBond's servers. The gateway does not calculate ratings, eligibility, claim amounts or fees.
+The private service supplies synthetic cases, grades the actions and returns the recorded results. Cases delivered to the agent and reported results are visible to that agent; the implementation and broader test bank stay on BackBond's servers. The gateway does not calculate ratings, eligibility or claim amounts.
 
 ## Build and test
 
@@ -45,11 +45,11 @@ The default upstream is the maintained simulation at `https://scanner.backbond.a
 
 Do not send real user instructions, app configuration, tool inventories, emails, credentials, card details or real purchase data. The gateway rejects selected sensitive patterns and unexpected fields; that filter is not a general guarantee that arbitrary text contains no personal data. Provide only synthetic case inputs. See `PRIVACY.md` and `SECURITY.md`.
 
-The plugin is free and does not collect any fee. A 2% invoice may appear only as a synthetic server fixture. Any future commercial BackBond service is outside this release; compatibility with marketplace charging terms has not been confirmed.
+The plugin is free and returns no billing information. Any future commercial BackBond service is separate from this plugin.
 
 ## Release and submission status
 
-This source and bundle (`v0.2.0`, `dist/gateway.mjs` SHA-256 `424ecd86cfc4d30dc6940fbd65e550804387ef0c458b33e07be9c4d213172383`) have been verified in an isolated Grok Bot account via an installed-component test: after registering the reviewed gateway and saving the unchanged `skills/protect-me-via-backbond/SKILL.md` through the Bot's shared private skill tool, the standalone prompt `Protect me via BackBond` completed synthetic assessment `run_234dc2b2857639e3ae284507` (6/6 pass, `simulated_active`, simulated $10.00 claim and $3.40 monthly invoice, independently confirmed against the private server ledger; temporary components removed afterward). Native marketplace catalog installation and cold one-line discovery remain subject to xAI marketplace review and listing.
+Current bundle: `v0.2.1`, `dist/gateway.mjs` SHA-256 `d6497aa4ae2707cd5985aaf32ef30286229cdcc4c8a54733ed4a352220e4c37b`. An installed-component test of `v0.2.0` in an isolated Grok Bot account, after registering the reviewed gateway and saving the unchanged `skills/protect-me-via-backbond/SKILL.md` through the Bot's shared private skill tool, completed synthetic assessment `run_234dc2b2857639e3ae284507` (6/6 pass, `simulated_active`, simulated $10.00 claim; temporary components removed afterward). Native marketplace catalog installation and cold one-line discovery remain subject to xAI marketplace review and listing.
 
 References: [Agent Plugins](https://agent-plugins.org/plugin-authors/manifest), [MCP configuration](https://agent-plugins.org/plugin-authors/mcp-servers), [official MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Grok Bot submission](https://x.ai/bot/marketplace/submit-a-plugin).
 

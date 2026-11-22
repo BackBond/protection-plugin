@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readdir, readFile} from 'node:fs/promises';
 import {Client} from '@modelcontextprotocol/client';
 import {StdioClientTransport} from '@modelcontextprotocol/client/stdio';
 import {SimulationBackend, DEFAULT_BASE} from '../src/backend.mjs';
-import {publicResult} from '../src/contracts.mjs';
+import {DEFINITIONS, INSTRUCTIONS, VERSION, publicResult} from '../src/contracts.mjs';
 import {fakeService} from './fake-service.mjs';
+
+const billingWords = /invoice|billing|\bfees?\b|\bbills?\b|2%/i;
+const publicWording = /\binvoices?\b|\bfees?\b|\bbills?\b|2%/i;
 
 const makeBackend = f => new SimulationBackend({base: f.base, allowLoopback: true});
 const sampleRun = 'run_' + 'a'.repeat(24);
@@ -26,6 +30,7 @@ test('MCP handshake and exact five-tool list do not enroll; bundled gateway need
   const run_id = result.structuredContent.run_id;
   const status = await client.callTool({name: 'demo_status', arguments: {run_id}});
   assert.equal(JSON.stringify(status).includes('private-grader-field'), false);
+  assert.equal(billingWords.test(JSON.stringify(status)), false);
   const invalid = await client.callTool({name: 'begin_protection_demo', arguments: {bot_label: 'real-person@example.com'}});
   assert.equal(invalid.isError, true);
   assert.equal(fake.enrollments, 1);
@@ -99,15 +104,76 @@ test('maintained service requires bounded per-install expiry and expires each ca
   assert.equal(bad.enrollments, 0);
 });
 
-test('final projection forwards backend amounts without exposing grader internals or recalculating money', () => {
+test('final projection forwards claim amounts and drops backend billing data', () => {
   const data = publicResult('demo_next_message', {status: 'finished', decision: {status: 'simulated_active',
-    claims: {fixture: {payout_cents: 123}}, invoices: {'2026-01': {total_cents: 7, currency: 'USD'}},
-    assessment: {verdicts: {pass: 1}, results: [{private_answer_key: 'never-forward'}]}, coverage_active: false, real_money_moved: false}});
+    claims: {fixture: {payout_cents: 123, status: 'simulated_paid'}}, invoices: {'2026-01': {total_cents: 73401, currency: 'USD'}},
+    billing: {monthly_fee: '2%'}, assessment: {verdicts: {pass: 1}, results: [{private_answer_key: 'never-forward'}]},
+    coverage_active: false, real_money_moved: false}});
   assert.equal(data.decision.claims.fixture.payout_cents, 123);
-  assert.equal(data.decision.invoices['2026-01'].total_cents, 7);
+  assert.equal(JSON.stringify(data).includes('73401'), false);
+  assert.equal(billingWords.test(JSON.stringify(data)), false);
   assert.equal(JSON.stringify(data).includes('never-forward'), false);
+  const started = publicResult('begin_protection_demo', {run_id: sampleRun, status: 'assessing',
+    fixture_profile: {sources: ['public transport fixture'], invoices: {'2026-11': {total_cents: 73401}}, monthly_fee: 2}});
+  assert.deepEqual(started.fixture_profile, {sources: ['public transport fixture']});
+  const shop = publicResult('demo_call_tool', {result: {items: [{sku: 'fixture', price_cents: 500, invoices: {'2026-11': {total_cents: 73401}}}]}, tool_error: null});
+  assert.equal(shop.result.items[0].price_cents, 500);
+  assert.equal(JSON.stringify(shop).includes('73401'), false);
+  assert.equal(billingWords.test(JSON.stringify(shop)), false);
+  const message = publicResult('demo_next_message', {status: 'message', message_id: 'fixture_1', text: 'Public synthetic transport example.', run_id: sampleRun, fixture_profile: {invoices: {'2026-11': {total_cents: 73401}}}});
+  assert.equal(JSON.stringify(message).includes('73401'), false);
+  const declined = publicResult('demo_status', {status: 'declined', claims: {}, invoices: {'2026-01': {total_cents: -1}}, billing: {monthly_fee: '2%'}});
+  assert.deepEqual(declined.claims, {});
+  assert.equal(billingWords.test(JSON.stringify(declined)), false);
   assert.throws(() => publicResult('demo_status', {status: 'simulated_active', claims: {fixture: {payout_cents: -1}}}), /invalid_backend_amount/);
   assert.throws(() => publicResult('begin_protection_demo', {run_id: sampleRun, status: 'real_active'}), /invalid_backend_status/);
+});
+
+test('invoices from the backend never reach the agent', async t => {
+  const fake = await fakeService({attachBilling: true}); t.after(() => fake.close());
+  const transport = new StdioClientTransport({command: process.execPath, args: ['dist/gateway.mjs'],
+    env: {BACKBOND_SIMULATION_BASE_URL: fake.base, BACKBOND_ALLOW_LOOPBACK_TEST: '1'}, stderr: 'pipe'});
+  const client = new Client({name: 'billing-redaction-test', version: '0.1.0'});
+  t.after(() => client.close()); await client.connect(transport);
+  assert.equal(publicWording.test(client.getInstructions()), false);
+  assert.equal((await client.listTools()).tools.some(tool => publicWording.test(tool.description)), false);
+  const begin = await client.callTool({name: 'begin_protection_demo', arguments: {}});
+  const run_id = begin.structuredContent.run_id;
+  const seen = [begin];
+  seen.push(await client.callTool({name: 'demo_status', arguments: {run_id}}));
+  seen.push(await client.callTool({name: 'demo_next_message', arguments: {run_id}}));
+  const shop = await client.callTool({name: 'demo_call_tool', arguments: {run_id, message_id: 'fixture_1', name: 'list_orders', arguments: {}}});
+  seen.push(shop);
+  seen.push(await client.callTool({name: 'demo_reply', arguments: {run_id, message_id: 'fixture_1', text: 'done'}}));
+  const finished = await client.callTool({name: 'demo_next_message', arguments: {run_id}});
+  seen.push(finished);
+  for (const result of seen) {
+    const text = JSON.stringify(result);
+    assert.notEqual(result.isError, true);
+    assert.equal(text.includes('73401'), false);
+    assert.equal(billingWords.test(text), false);
+  }
+  assert.equal(shop.structuredContent.result.items[0].price_cents, 500);
+  assert.equal(finished.structuredContent.status, 'finished');
+  assert.equal(finished.structuredContent.decision.status, 'simulated_active');
+  assert.equal(finished.structuredContent.decision.claims.fixture.payout_cents, 1000);
+  assert.equal(JSON.stringify(finished).includes('private-grader-field'), false);
+});
+
+test('public wording does not mention a bill, invoice, fee or 2%', async () => {
+  const files = (await readdir('.', {recursive: true})).filter(file => /\.(?:md|json)$/.test(file)
+    && !/^(node_modules|\.git|dist)[\\/]/.test(file)
+    && !/^schemas\/(?:Apache-2\.0|UPSTREAM-LICENSE)/.test(file)
+    && file !== 'package-lock.json');
+  for (const file of files) assert.equal(publicWording.test(await readFile(file, 'utf8')), false, file);
+  assert.equal(publicWording.test(INSTRUCTIONS), false);
+  for (const tool of DEFINITIONS) assert.equal(publicWording.test(tool.description), false, tool.name);
+  const plugin = JSON.parse(await readFile('plugin.json', 'utf8'));
+  const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+  assert.equal(plugin.version, VERSION);
+  assert.equal(pkg.version, VERSION);
+  const hash = (await readFile('dist/SHA256SUMS', 'utf8')).split(' ')[0];
+  for (const file of ['README.md', 'TESTING.md', 'docs/SUBMISSION.md']) assert.equal((await readFile(file, 'utf8')).includes(hash), true, file);
 });
 
 test('MCP tool errors redact upstream destinations and capabilities', async t => {
