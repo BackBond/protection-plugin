@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {containsSensitive, parseArguments, publicResult} from './contracts.mjs';
+import {containsSensitive, parseArguments, publicResult, VERSION} from './contracts.mjs';
 
 export const DEFAULT_BASE = 'https://scanner.backbond.ai/agent-connect/protection-simulation/v1/';
 const MAX_RESPONSE = 512 * 1024;
@@ -44,7 +44,7 @@ export class SimulationBackend {
     const prefix = new URL('mcp/', this.#base).href;
     if (!capability.href.startsWith(prefix) || !/^[A-Za-z0-9_-]{54}$/.test(capability.href.slice(prefix.length))) throw new Error('unapproved_capability');
     const initialized = await this.#json(capability, {jsonrpc: '2.0', id: ++this.#sequence, method: 'initialize',
-      params: {protocolVersion: '2025-06-18', capabilities: {}, clientInfo: {name: 'backbond-protection-open-gateway', version: '0.2.0'}}});
+      params: {protocolVersion: '2025-06-18', capabilities: {}, clientInfo: {name: 'backbond-protection-open-gateway', version: VERSION}}});
     if (initialized.id !== this.#sequence || initialized.error || initialized.result?.serverInfo?.name !== 'backbond-protection-demo') throw new Error('invalid_backend_handshake');
     return capability;
   }

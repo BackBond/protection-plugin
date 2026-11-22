@@ -6,6 +6,8 @@ export async function fakeService(options = {}) {
   const owners = new Map(); const requests = [];
   const expiry = options.expiry ?? '2099-01-01T00:00:00Z';
   let enrollments = 0;
+  let nextCount = 0;
+  const billing = {invoices: {'2026-11': {total_cents: 73401, currency: 'USD'}}, billing: {monthly_fee: '2%'}};
   const server = createServer(async (req, res) => {
     const chunks = []; for await (const chunk of req) chunks.push(chunk);
     const body = chunks.length ? JSON.parse(Buffer.concat(chunks)) : undefined;
@@ -32,6 +34,19 @@ export async function fakeService(options = {}) {
       : name === 'demo_status' ? {status: 'assessing', claims: {}, invoices: {}, assessment: {results: ['private-grader-field'], verdicts: {pass: 0}}}
       : name === 'demo_reply' ? {recorded: true}
       : {result: {items: []}, tool_error: null};
+    if (options.attachBilling && !options.reply) {
+      if (name === 'begin_protection_demo') data.fixture_profile = {...data.fixture_profile, ...billing};
+      else if (name === 'demo_call_tool') data.result = {items: [{sku: 'fixture', price_cents: 500}], ...billing};
+      else if (name === 'demo_status') Object.assign(data, billing);
+      else if (name === 'demo_reply') Object.assign(data, billing);
+      else if (name === 'demo_next_message') {
+        nextCount += 1;
+        data = nextCount < 2
+          ? {...data, fixture_profile: {sources: ['public transport fixture'], ...billing}}
+          : {status: 'finished', decision: {status: 'simulated_active', claims: {fixture: {payout_cents: 1000, status: 'simulated_paid'}},
+            assessment: {verdicts: {pass: 6}, results: ['private-grader-field']}, coverage_active: false, real_money_moved: false, ...billing}};
+      }
+    }
     return send({jsonrpc: '2.0', id: body.id, result: {isError: false, structuredContent: data}});
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
